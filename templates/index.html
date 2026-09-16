@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>記事読み上げチェッカー</title>
+<style>
+  :root {
+    --bg-cream: #faf3ea;
+    --stripe: #f3e7d8;
+    --card: #ffffff;
+    --coral: #ef8c7f;
+    --coral-dark: #dd7364;
+    --pink-soft: #fbdbd6;
+    --pink-tab: #f6c9c4;
+    --ink: #4a4038;
+    --ink-light: #948a7d;
+    --ring: #e9e0d1;
+    --dashed: #f0b3aa;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background:
+      repeating-linear-gradient(135deg, var(--stripe) 0 2px, var(--bg-cream) 2px 18px);
+    font-family: "Yu Gothic UI", "Meiryo", "Hiragino Maru Gothic ProN", sans-serif;
+    color: var(--ink);
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+
+  .page-stack {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+  }
+
+  .page-behind-1, .page-behind-2 {
+    position: absolute;
+    inset: 14px -10px -16px 18px;
+    background: var(--card);
+    border-radius: 30px;
+    z-index: -1;
+    box-shadow: 0 8px 18px rgba(120, 90, 60, 0.06);
+  }
+  .page-behind-1 { transform: rotate(-2deg); }
+  .page-behind-2 { inset: 20px -16px -22px 26px; transform: rotate(2.5deg); background: var(--pink-soft); z-index: -2; }
+
+  .card {
+    position: relative;
+    background: var(--card);
+    border-radius: 30px;
+    box-shadow: 0 16px 34px rgba(120, 90, 60, 0.12);
+    padding: 40px 44px 32px;
+  }
+
+  .ring-holes {
+    position: absolute;
+    top: 46px;
+    right: -12px;
+    display: flex;
+    flex-direction: column;
+    gap: 34px;
+    z-index: 2;
+  }
+  .ring-holes span {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg-cream);
+    border: 2px solid var(--ring);
+    box-shadow: inset 0 2px 3px rgba(120, 90, 60, 0.12);
+  }
+
+  .date-tag {
+    position: absolute;
+    top: -16px;
+    left: 32px;
+    background: var(--coral);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: 1px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    transform: rotate(-4deg);
+    box-shadow: 0 4px 10px rgba(220, 110, 90, 0.35);
+  }
+
+  header { margin-bottom: 22px; }
+  h1 {
+    margin: 6px 0 6px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .subtitle {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--ink-light);
+  }
+  .dotted-rule {
+    border: none;
+    border-top: 2px dotted var(--dashed);
+    margin: 12px 0 0;
+  }
+
+  .settings-box {
+    border: 2px dashed var(--dashed);
+    border-radius: 18px;
+    padding: 14px 18px;
+    margin: 20px 0 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    background: #fffaf7;
+  }
+  .settings-box .field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--ink-light);
+    font-weight: 600;
+  }
+  select, input[type=range] { accent-color: var(--coral); }
+  select {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    border: 1px solid #e6dccb;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .url-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .url-row input {
+    flex: 1;
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 2px dashed var(--dashed);
+    background: #fffaf7;
+    color: var(--ink);
+  }
+  .url-row input::placeholder { color: var(--ink-light); }
+  .url-row button {
+    padding: 8px 18px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .fetch-status {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-light);
+    min-height: 16px;
+    margin: 2px 4px 12px;
+  }
+  .fetch-status.error { color: var(--coral-dark); font-weight: 700; }
+
+  .text-wrap {
+    position: relative;
+    min-height: 260px;
+  }
+  textarea, .display-box {
+    width: 100%;
+    min-height: 260px;
+    max-height: 340px;
+    overflow-y: auto;
+    border: 1px solid #e2d9c9;
+    border-radius: 10px;
+    padding: 16px;
+    font-family: system-ui, "Yu Gothic UI", "Meiryo", sans-serif;
+    font-size: 15px;
+    line-height: 1.9;
+    color: #222;
+    background: #fff;
+  }
+  textarea { resize: vertical; }
+  .display-box { white-space: normal; display: none; }
+  .display-box .md-h { font-weight: 700; margin: 0.6em 0 0.3em; }
+  .display-box h1.md-h { font-size: 1.5em; }
+  .display-box h2.md-h { font-size: 1.3em; }
+  .display-box h3.md-h,
+  .display-box h4.md-h,
+  .display-box h5.md-h,
+  .display-box h6.md-h { font-size: 1.1em; }
+  .display-box .md-p { margin: 0.5em 0; }
+  .display-box .md-list { margin: 0.4em 0; padding-left: 1.4em; }
+  .display-box .md-quote {
+    margin: 0.6em 0;
+    padding: 4px 14px;
+    border-left: 3px solid var(--pink-tab);
+    color: #555;
+    background: #fdf6f3;
+  }
+  .display-box .md-hr { border: none; border-top: 1px solid #e6dccb; margin: 1em 0; }
+  .display-box .md-code {
+    background: #f5f2ec;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    color: #555;
+  }
+  .display-box code { background: #f2ede3; padding: 1px 4px; border-radius: 4px; }
+  .display-box .link { color: var(--coral-dark); text-decoration: underline; }
+  .sentence { transition: background-color 0.15s ease; border-radius: 3px; }
+  .sentence.current { background: #ffe58a; box-shadow: 0 0 0 2px #ffe58a; }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  button {
+    font-family: inherit;
+    border: none;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  button:active { transform: scale(0.96); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--ink);
+    border: 1.5px solid var(--pink-tab);
+  }
+  .btn-secondary:hover { background: var(--pink-soft); }
+  .btn-primary {
+    background: var(--coral);
+    color: #fff;
+    padding: 10px 26px;
+    box-shadow: 0 6px 14px rgba(220, 110, 90, 0.35);
+  }
+  .btn-primary:hover { background: var(--coral-dark); }
+  .btn-stop {
+    background: #fff;
+    color: var(--coral-dark);
+    border: 1.5px solid var(--dashed);
+  }
+
+  .status-pill {
+    display: block;
+    text-align: center;
+    margin: 16px auto 0;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--coral-dark);
+    background: var(--pink-soft);
+    border-radius: 999px;
+    padding: 7px 18px;
+    width: fit-content;
+  }
+
+  footer {
+    text-align: right;
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--ink-light);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-stack">
+  <div class="page-behind-1"></div>
+  <div class="page-behind-2"></div>
+
+  <div class="card">
+    <div class="ring-holes">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="date-tag">🎧 LISTEN</div>
+
+    <header>
+      <h1>記事読み上げチェッカー</h1>
+      <p class="subtitle">貼り付けて再生 → 耳で文章をチェック（Markdown対応）</p>
+      <hr class="dotted-rule">
+    </header>
+
+    <div class="settings-box">
+      <div class="field">
+        声:
+        <select id="voice">
+          <option value="ja-JP-NanamiNeural">七海（女性）</option>
+          <option value="ja-JP-KeitaNeural">圭太（男性）</option>
+        </select>
+      </div>
+      <div class="field">
+        速度:
+        <select id="rate">
+          <option value="-20%">-20%</option>
+          <option value="-10%">-10%</option>
+          <option value="+0%" selected>+0%</option>
+          <option value="+10%">+10%</option>
+          <option value="+20%">+20%</option>
+          <option value="+30%">+30%</option>
+        </select>
+      </div>
+      <div class="field">
+        音量:
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="1">
+      </div>
+    </div>
+
+    <div class="url-row">
+      <input type="text" id="urlInput" placeholder="🔗 記事のURLを貼ると本文を自動取得（noteなど）">
+      <button class="btn-secondary" id="fetchBtn">取得</button>
+    </div>
+    <span class="fetch-status" id="fetchStatus"></span>
+
+    <div class="text-wrap">
+      <textarea id="textInput" placeholder="ここに記事本文を貼り付けてください（Markdown可）"></textarea>
+      <div class="display-box" id="textDisplay"></div>
+    </div>
+
+    <div class="controls-row">
+      <button class="btn-secondary" id="prevBtn">⏮ 前の文</button>
+      <button class="btn-primary" id="playBtn">▶ 再生</button>
+      <button class="btn-secondary" id="nextBtn">次の文 ⏭</button>
+      <button class="btn-stop" id="stopBtn">■ 停止</button>
+    </div>
+
+    <span class="status-pill" id="status">テキストを貼り付けて「再生」を押してください</span>
+
+    <footer>Note Reader</footer>
+  </div>
+</div>
+
+<audio id="player"></audio>
+
+<script>
+const textInput = document.getElementById('textInput');
+const textDisplay = document.getElementById('textDisplay');
+const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const stopBtn = document.getElementById('stopBtn');
+const statusEl = document.getElementById('status');
+const voiceSel = document.getElementById('voice');
+const rateSel = document.getElementById('rate');
+const volumeInput = document.getElementById('volume');
+const player = document.getElementById('player');
+const urlInput = document.getElementById('urlInput');
+const fetchBtn = document.getElementById('fetchBtn');
+const fetchStatus = document.getElementById('fetchStatus');
+
+let sentences = [];   // 読み上げ用プレーンテキストの配列
+let idx = 0;
+let state = 'idle';   // idle / playing / paused / stopped
+let audioCache = {};  // idx -> url
+
+// ---------- Markdown 簡易パーサー ----------
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function stripInlineMarkdown(raw) {
+  let s = raw;
+  s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+  s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  s = s.replace(/(\*\*\*|___)(.+?)\1/g, '$2');
+  s = s.replace(/(\*\*|__)(.+?)\1/g, '$2');
+  s = s.replace(/(\*|_)(.+?)\1/g, '$2');
+  s = s.replace(/`([^`]+)`/g, '$1');
+  s = s.replace(/~~(.+?)~~/g, '$1');
+  return s.trim();
+}
+
+function inlineToHtml(raw) {
+  let s = escapeHtml(raw);
+  s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, '');
+  s = s.replace(/\[([^\]]*)\]\(([^)]*)\)/g, '<span class="link">$1</span>');
+  s = s.replace(/(\*\*\*|___)(.+?)\1/g, '<strong><em>$2</em></strong>');
+  s = s.replace(/(\*\*|__)(.+?)\1/g, '<strong>$2</strong>');
+  s = s.replace(/(\*|_)(.+?)\1/g, '<em>$2</em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/~~(.+?)~~/g, '<del>$1</del>');
+  return s;
+}
+
+const SENT_RE = /[^。！？]+[。！？]?/g;
+
+function splitIntoSentenceChunks(raw) {
+  const chunks = [];
+  let m;
+  SENT_RE.lastIndex = 0;
+  while ((m = SENT_RE.exec(raw)) !== null) {
+    if (m[0].trim()) chunks.push(m[0]);
+    if (m.index === SENT_RE.lastIndex) SENT_RE.lastIndex++;
+  }
+  return chunks.length ? chunks : (raw.trim() ? [raw] : []);
+}
+
+function makeSentenceSpans(rawChunks) {
+  // rawChunks の各要素を <span class="sentence" data-idx="N"> にし、
+  // sentences 配列にプレーンテキストを push して idx を進める。
+  let html = '';
+  rawChunks.forEach(chunk => {
+    const plain = stripInlineMarkdown(chunk);
+    if (!plain) return;
+    const i = sentences.length;
+    sentences.push(plain);
+    html += `<span class="sentence" data-idx="${i}">${inlineToHtml(chunk)}</span>`;
+  });
+  return html;
+}
+
+function parseBlocks(text) {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === '') { i++; continue; }
+
+    if (/^```/.test(line)) {
+      const buf = [];
+      i++;
+      while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+      i++; // closing fence
+      blocks.push({ type: 'code', raw: buf.join('\n') });
+      continue;
+    }
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      blocks.push({ type: 'hr' });
+      i++;
+      continue;
+    }
+    let m = /^(#{1,6})\s+(.*)$/.exec(line);
+    if (m) {
+      blocks.push({ type: 'h' + m[1].length, raw: m[2] });
+      i++;
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, '')); i++; }
+      blocks.push({ type: 'blockquote', raw: buf.join(' ') });
+      continue;
+    }
+    if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*([-*+]|\d+\.)\s+/, ''));
+        i++;
+      }
+      blocks.push({ type: 'ul', items });
+      continue;
+    }
+
+    const buf = [line];
+    i++;
+    while (
+      i < lines.length &&
+      lines[i].trim() !== '' &&
+      !/^(#{1,6})\s+/.test(lines[i]) &&
+      !/^\s*([-*+]|\d+\.)\s+/.test(lines[i]) &&
+      !/^>\s?/.test(lines[i]) &&
+      !/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(lines[i]) &&
+      !/^```/.test(lines[i])
+    ) {
+      buf.push(lines[i]);
+      i++;
+    }
+    blocks.push({ type: 'p', raw: buf.join(' ') });
+  }
+  return blocks;
+}
+
+function buildArticle(text) {
+  sentences = [];
+  const blocks = parseBlocks(text);
+  let html = '';
+
+  blocks.forEach(b => {
+    if (b.type === 'hr') {
+      html += '<hr class="md-hr">';
+    } else if (b.type === 'code') {
+      html += `<pre class="md-code">${escapeHtml(b.raw)}</pre>`;
+    } else if (/^h[1-6]$/.test(b.type)) {
+      const spans = makeSentenceSpans([b.raw]);
+      if (spans) html += `<${b.type} class="md-h">${spans}</${b.type}>`;
+    } else if (b.type === 'blockquote') {
+      const spans = makeSentenceSpans(splitIntoSentenceChunks(b.raw));
+      if (spans) html += `<blockquote class="md-quote">${spans}</blockquote>`;
+    } else if (b.type === 'ul') {
+      let items = '';
+      b.items.forEach(item => {
+        const spans = makeSentenceSpans(splitIntoSentenceChunks(item));
+        items += `<li>${spans}</li>`;
+      });
+      html += `<ul class="md-list">${items}</ul>`;
+    } else if (b.type === 'p') {
+      const spans = makeSentenceSpans(splitIntoSentenceChunks(b.raw));
+      if (spans) html += `<p class="md-p">${spans}</p>`;
+    }
+  });
+
+  return html;
+}
+
+// ---------- 再生制御 ----------
+function setPlayLabel(mode) {
+  playBtn.textContent = mode === 'pause' ? '⏸ 一時停止' : '▶ 再生';
+}
+
+function showTextarea() {
+  textInput.style.display = 'block';
+  textDisplay.style.display = 'none';
+}
+function showDisplay() {
+  textInput.style.display = 'none';
+  textDisplay.style.display = 'block';
+}
+
+function highlight(i) {
+  const prev = textDisplay.querySelector('.sentence.current');
+  if (prev) prev.classList.remove('current');
+  const el = textDisplay.querySelector(`.sentence[data-idx="${i}"]`);
+  if (el) {
+    el.classList.add('current');
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+async function getAudioUrl(i) {
+  if (audioCache[i]) return audioCache[i];
+  const resp = await fetch('/synthesize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: sentences[i], voice: voiceSel.value, rate: rateSel.value }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || '音声合成に失敗しました');
+  }
+  const data = await resp.json();
+  audioCache[i] = data.url;
+  return data.url;
+}
+
+function prefetch(i) {
+  if (i >= 0 && i < sentences.length && !audioCache[i]) {
+    getAudioUrl(i).catch(() => {});
+  }
+}
+
+async function playCurrent() {
+  highlight(idx);
+  statusEl.textContent = `再生中: ${idx + 1} / ${sentences.length} 文`;
+  try {
+    const url = await getAudioUrl(idx);
+    if (state !== 'playing') return;
+    prefetch(idx + 1);
+    player.src = url;
+    player.volume = parseFloat(volumeInput.value);
+    await player.play();
+  } catch (e) {
+    statusEl.textContent = '音声合成に失敗しました（ネット接続を確認してください）';
+    state = 'stopped';
+    setPlayLabel('play');
+  }
+}
+
+player.addEventListener('ended', () => {
+  if (state !== 'playing') return;
+  idx++;
+  if (idx >= sentences.length) {
+    finish();
+  } else {
+    playCurrent();
+  }
+});
+
+function startReading() {
+  const text = textInput.value;
+  const html = buildArticle(text);
+  if (!sentences.length) {
+    alert('テキストを貼り付けてください');
+    return;
+  }
+  textDisplay.innerHTML = html;
+  showDisplay();
+  idx = 0;
+  audioCache = {};
+  state = 'playing';
+  setPlayLabel('pause');
+  playCurrent();
+}
+
+function togglePlay() {
+  if (state === 'idle' || state === 'stopped') {
+    startReading();
+  } else if (state === 'playing') {
+    player.pause();
+    state = 'paused';
+    setPlayLabel('play');
+  } else if (state === 'paused') {
+    player.play();
+    state = 'playing';
+    setPlayLabel('pause');
+  }
+}
+
+function next() {
+  if (!sentences.length) return;
+  idx = Math.min(idx + 1, sentences.length - 1);
+  state = 'playing';
+  setPlayLabel('pause');
+  playCurrent();
+}
+
+function prev() {
+  if (!sentences.length) return;
+  idx = Math.max(idx - 1, 0);
+  state = 'playing';
+  setPlayLabel('pause');
+  playCurrent();
+}
+
+function stop() {
+  player.pause();
+  player.currentTime = 0;
+  state = 'stopped';
+  setPlayLabel('play');
+  showTextarea();
+  statusEl.textContent = '停止しました';
+}
+
+function finish() {
+  state = 'stopped';
+  setPlayLabel('play');
+  showTextarea();
+  statusEl.textContent = '読み終わりました';
+}
+
+playBtn.addEventListener('click', togglePlay);
+nextBtn.addEventListener('click', next);
+prevBtn.addEventListener('click', prev);
+stopBtn.addEventListener('click', stop);
+volumeInput.addEventListener('input', () => { player.volume = parseFloat(volumeInput.value); });
+[voiceSel, rateSel].forEach(el => el.addEventListener('change', () => { audioCache = {}; }));
+
+// ---------- URLから記事取得 ----------
+async function fetchArticle() {
+  const url = urlInput.value.trim();
+  if (!url) return;
+  fetchBtn.disabled = true;
+  fetchBtn.textContent = '取得中…';
+  fetchStatus.className = 'fetch-status';
+  fetchStatus.textContent = '記事を取得しています…';
+  try {
+    const resp = await fetch('/fetch_article', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || '取得に失敗しました');
+    if (state !== 'idle' && state !== 'stopped') stop();
+    textInput.value = data.markdown;
+    fetchStatus.textContent = data.title ? `取得しました：${data.title}` : '取得しました';
+  } catch (e) {
+    fetchStatus.className = 'fetch-status error';
+    fetchStatus.textContent = e.message || '取得に失敗しました。コピペをお試しください。';
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = '取得';
+  }
+}
+fetchBtn.addEventListener('click', fetchArticle);
+urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchArticle(); });
+
+// バックエンドの自動終了用ハートビート
+setInterval(() => { fetch('/ping', { method: 'POST' }).catch(() => {}); }, 3000);
+</script>
+</body>
+</html>

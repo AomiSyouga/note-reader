@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>記事読み上げチェッカー</title>
+<style>
+  :root {
+    --bg-cream: #faf3ea;
+    --stripe: #f3e7d8;
+    --card: #ffffff;
+    --coral: #ef8c7f;
+    --coral-dark: #dd7364;
+    --ink: #4a4038;
+    --ink-light: #948a7d;
+    --dashed: #f0b3aa;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: repeating-linear-gradient(135deg, var(--stripe) 0 2px, var(--bg-cream) 2px 18px);
+    font-family: "Yu Gothic UI", "Meiryo", "Hiragino Maru Gothic ProN", sans-serif;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: 0 16px 34px rgba(120, 90, 60, 0.14);
+    padding: 40px 36px;
+    width: 320px;
+    text-align: center;
+  }
+  h1 { font-size: 18px; margin: 0 0 6px; }
+  p.sub { color: var(--ink-light); font-size: 13px; margin: 0 0 20px; }
+  input[type=password] {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 2px dashed var(--dashed);
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 999px;
+    background: var(--coral);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--coral-dark); }
+  .error { color: var(--coral-dark); font-size: 13px; margin: 0 0 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎧 記事読み上げチェッカー</h1>
+    <p class="sub">合言葉を入力してください</p>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <form method="post">
+      <input type="password" name="code" autofocus>
+      <button type="submit">入る</button>
+    </form>
+  </div>
+</body>
+</html>
