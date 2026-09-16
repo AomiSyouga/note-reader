@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>記事読み上げチェッカー</title>
 <style>
   :root {
@@ -23,6 +24,7 @@
   html, body {
     margin: 0;
     height: 100%;
+    overflow-x: hidden;
     background:
       repeating-linear-gradient(135deg, var(--stripe) 0 2px, var(--bg-cream) 2px 18px);
     font-family: "Yu Gothic UI", "Meiryo", "Hiragino Maru Gothic ProN", sans-serif;
@@ -293,6 +295,15 @@
     font-size: 11px;
     color: var(--ink-light);
     font-style: italic;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 14px; }
+    .card { padding: 32px 18px 20px; }
+    h1 { font-size: 20px; }
+    .ring-holes { display: none; }
+    .date-tag { left: 18px; }
+    .controls-row { flex-wrap: wrap; }
   }
 </style>
 </head>
