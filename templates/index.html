@@ -176,6 +176,21 @@
     position: relative;
     min-height: 260px;
   }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    font-weight: 700;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--ink-light);
+    border: 1.5px solid #e6dccb;
+    opacity: 0.75;
+  }
+  .copy-btn:hover { opacity: 1; background: var(--pink-soft); color: var(--coral-dark); }
   textarea, .display-box {
     width: 100%;
     min-height: 260px;
@@ -332,6 +347,7 @@
     <span class="fetch-status" id="fetchStatus"></span>
 
     <div class="text-wrap">
+      <button class="copy-btn" id="copyBtn" title="原文をコピー">📋 コピー</button>
       <textarea id="textInput" placeholder="ここに記事本文を貼り付けてください（Markdown可）"></textarea>
       <div class="display-box" id="textDisplay"></div>
     </div>
@@ -366,6 +382,7 @@ const player = document.getElementById('player');
 const urlInput = document.getElementById('urlInput');
 const fetchBtn = document.getElementById('fetchBtn');
 const fetchStatus = document.getElementById('fetchStatus');
+const copyBtn = document.getElementById('copyBtn');
 
 let sentences = [];   // 読み上げ用プレーンテキストの配列
 let idx = 0;
@@ -693,6 +710,19 @@ async function fetchArticle() {
 }
 fetchBtn.addEventListener('click', fetchArticle);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchArticle(); });
+
+// ---------- 原文コピー ----------
+copyBtn.addEventListener('click', async () => {
+  if (!textInput.value) return;
+  try {
+    await navigator.clipboard.writeText(textInput.value);
+    const original = copyBtn.textContent;
+    copyBtn.textContent = '✔ コピーしました';
+    setTimeout(() => { copyBtn.textContent = original; }, 1500);
+  } catch (e) {
+    alert('コピーに失敗しました');
+  }
+});
 
 // バックエンドの自動終了用ハートビート
 setInterval(() => { fetch('/ping', { method: 'POST' }).catch(() => {}); }, 3000);
