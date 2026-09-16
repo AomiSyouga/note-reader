@@ -401,7 +401,7 @@ function inlineToHtml(raw) {
   return s;
 }
 
-const SENT_RE = /[^。！？]+[。！？]?/g;
+const SENT_RE = /[^。！？）」』]+[。！？）」』]?/g;
 
 function splitIntoSentenceChunks(raw) {
   const chunks = [];
